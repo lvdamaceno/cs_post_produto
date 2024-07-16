@@ -79,7 +79,7 @@ function handleRequestError(error) {
 // =======================
 // Funções de Envio
 // =======================
-export async function salvaCadastroCs(codprod) {
+async function salvaCadastroCs(codprod) {
   const authorization = await token();
   const base_query = process.env.SNK_QUERY_CADASTRO;
   const query = base_query.replace('${codprod}', codprod);
@@ -107,7 +107,35 @@ async function enviaCadastrosCS(produtos) {
   }
 }
 
-export async function salvaEstoqueCs(codprod) {
+async function salvaKardexCs(codprod) {
+  const authorization = await token();
+  const base_query = process.env.SNK_QUERY_ESTOQUE;
+  const query = base_query.replace('${codprod}', codprod);
+
+  console.log(`📦 Enviando dados do estoque do produto ${codprod}`);
+  try {
+    const response = await fetch(process.env.SNK_ENDPOINT_QUERY, options(authorization, query));
+    const data = await response.json();
+    const { responseBody: { rows } } = data;
+
+    rows.forEach(row => {
+      const json = JSON.parse(row);
+      postToCs(json, process.env.CS_ENDPOINT_KARDEX, 'Kardex', codprod);
+    });
+  } catch (error) {
+    console.error(`Erro no produto ${codprod}:`, error.message);
+  }
+}
+
+async function enviaKardexCs(produtos) {
+  try {
+    await salvaKardexCs(produtos);
+  } catch (error) {
+    console.error('Erro ao executar salvaKardexCs:', error);
+  }
+}
+
+async function salvaEstoqueCs(codprod) {
   const authorization = await token();
   const base_query = process.env.SNK_QUERY_ESTOQUE;
   const query = base_query.replace('${codprod}', codprod);
@@ -138,17 +166,21 @@ async function enviaEstoqueCs(produtos) {
 // =======================
 // Funções de Processamento
 // =======================
-export async function processaCadastrosEEstoques(produtos) {
+async function processaCadastrosEEstoques(produtos) {
   await enviaCadastrosCS(produtos);
+  await enviaKardexCs(produtos);
   await enviaEstoqueCs(produtos);
 }
 
 // =======================
 // Função Principal
 // =======================
-async function postProdutosRecentes() {
+async function postProdutosRecentes(tempo) {
   const authorization = await token();
-  const query = process.env.SNK_QUERY_PROD_RECENTES;
+  // const query = process.env.SNK_QUERY_PROD_RECENTES;
+
+  const base_query = process.env.SNK_QUERY_PROD_RECENTES;
+  const query = base_query.replace('${tempo}', tempo);
 
   try {
     const response = await fetch(process.env.SNK_ENDPOINT_QUERY, options(authorization, query));
@@ -169,4 +201,4 @@ async function postProdutosRecentes() {
 // =======================
 // Execução da Função Principal
 // =======================
-postProdutosRecentes();
+postProdutosRecentes(2);
