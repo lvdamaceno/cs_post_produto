@@ -7,7 +7,7 @@ dotenv.config();
 // =======================
 // Configurações
 // =======================
-const url = process.env.SNK_URL;
+// const url = SNK_URL;
 const headers = {
   password: process.env.PASSWORD,
   username: process.env.USERNAME,
@@ -15,12 +15,20 @@ const headers = {
   token: process.env.TOKEN,
 };
 
+const SNK_URL = 'https://api.sankhya.com.br/login'
+const SNK_ENDPOINT_QUERY = 'https://api.sankhya.com.br/gateway/v1/mge/service.sbr?serviceName=DbExplorerSP.executeQuery&outputType=json'
+const SNK_QUERY_CADASTRO = 'SELECT sankhya.CC_CS_JSON_PRODUTO(${codprod}) AS ProdutoJSON'
+const SNK_QUERY_ESTOQUE = 'SELECT sankhya.CC_CS_JSON_ESTOQUE(${codprod}) AS ProdutoJSON'
+const SNK_QUERY_PROD_RECENTES = "SELECT sankhya.CC_CS_PRODUTOS_RECENTES(${tempo}) AS ProdutosRecentes"
+const CS_ENDPOINT_CADASTRO = 'https://cc01.csicorpnet.com.br/CS50Integracao_API/rest/CS_IntegracaoV1/ProdutoUpdate?In_Tenant_ID=288'
+const CS_ENDPOINT_KARDEX = 'https://cc01.csicorpnet.com.br/CS50Integracao_API/rest/CS_IntegracaoV1/Saldos_Atualiza?In_Tenant_ID=288'
+
 // =======================
 // Funções Utilitárias
 // =======================
 async function token() {
   try {
-    const response = await axios.post(url, {}, { headers });
+    const response = await axios.post(SNK_URL, {}, { headers });
     const token = response.data.bearerToken;
     return token;
   } catch (error) {
@@ -81,18 +89,18 @@ function handleRequestError(error) {
 // =======================
 async function salvaCadastroCs(codprod) {
   const authorization = await token();
-  const base_query = process.env.SNK_QUERY_CADASTRO;
+  const base_query = SNK_QUERY_CADASTRO;
   const query = base_query.replace('${codprod}', codprod);
 
   console.log(`📝 Enviando dados do cadastro do produto ${codprod}`);
   try {
-    const response = await fetch(process.env.SNK_ENDPOINT_QUERY, options(authorization, query));
+    const response = await fetch(SNK_ENDPOINT_QUERY, options(authorization, query));
     const data = await response.json();
     const { responseBody: { rows } } = data;
 
     rows.forEach(row => {
       const json = JSON.parse(row);
-      postToCs(json, process.env.CS_ENDPOINT_CADASTRO, 'Cadastro', codprod);
+      postToCs(json, CS_ENDPOINT_CADASTRO, 'Cadastro', codprod);
     });
   } catch (error) {
     console.error(`Erro no produto ${codprod}:`, error.message);
@@ -109,18 +117,18 @@ async function enviaCadastrosCS(produtos) {
 
 async function salvaKardexCs(codprod) {
   const authorization = await token();
-  const base_query = process.env.SNK_QUERY_ESTOQUE;
+  const base_query = SNK_QUERY_ESTOQUE;
   const query = base_query.replace('${codprod}', codprod);
 
-  console.log(`📦 Enviando dados do estoque do produto ${codprod}`);
+  console.log(`📦 Enviando dados do kardex do produto ${codprod}`);
   try {
-    const response = await fetch(process.env.SNK_ENDPOINT_QUERY, options(authorization, query));
+    const response = await fetch(SNK_ENDPOINT_QUERY, options(authorization, query));
     const data = await response.json();
     const { responseBody: { rows } } = data;
 
     rows.forEach(row => {
       const json = JSON.parse(row);
-      postToCs(json, process.env.CS_ENDPOINT_KARDEX, 'Kardex', codprod);
+      postToCs(json, CS_ENDPOINT_KARDEX, 'Kardex', codprod);
     });
   } catch (error) {
     console.error(`Erro no produto ${codprod}:`, error.message);
@@ -135,41 +143,12 @@ async function enviaKardexCs(produtos) {
   }
 }
 
-async function salvaEstoqueCs(codprod) {
-  const authorization = await token();
-  const base_query = process.env.SNK_QUERY_ESTOQUE;
-  const query = base_query.replace('${codprod}', codprod);
-
-  console.log(`📦 Enviando dados do estoque do produto ${codprod}`);
-  try {
-    const response = await fetch(process.env.SNK_ENDPOINT_QUERY, options(authorization, query));
-    const data = await response.json();
-    const { responseBody: { rows } } = data;
-
-    rows.forEach(row => {
-      const json = JSON.parse(row);
-      postToCs(json, process.env.CS_ENDPOINT_ESTOQUE, 'Estoque', codprod);
-    });
-  } catch (error) {
-    console.error(`Erro no produto ${codprod}:`, error.message);
-  }
-}
-
-async function enviaEstoqueCs(produtos) {
-  try {
-    await salvaEstoqueCs(produtos);
-  } catch (error) {
-    console.error('Erro ao executar salvaEstoqueCs:', error);
-  }
-}
-
 // =======================
 // Funções de Processamento
 // =======================
 async function processaCadastrosEEstoques(produtos) {
   await enviaCadastrosCS(produtos);
   await enviaKardexCs(produtos);
-  await enviaEstoqueCs(produtos);
 }
 
 // =======================
@@ -177,13 +156,13 @@ async function processaCadastrosEEstoques(produtos) {
 // =======================
 async function postProdutosRecentes(tempo) {
   const authorization = await token();
-  // const query = process.env.SNK_QUERY_PROD_RECENTES;
+  // const query = SNK_QUERY_PROD_RECENTES;
 
-  const base_query = process.env.SNK_QUERY_PROD_RECENTES;
+  const base_query = SNK_QUERY_PROD_RECENTES;
   const query = base_query.replace('${tempo}', tempo);
 
   try {
-    const response = await fetch(process.env.SNK_ENDPOINT_QUERY, options(authorization, query));
+    const response = await fetch(SNK_ENDPOINT_QUERY, options(authorization, query));
     const data = await response.json();
     const { responseBody: { rows } } = data;
 
@@ -201,4 +180,4 @@ async function postProdutosRecentes(tempo) {
 // =======================
 // Execução da Função Principal
 // =======================
-postProdutosRecentes(2);
+postProdutosRecentes(540);
