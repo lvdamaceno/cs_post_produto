@@ -1,5 +1,4 @@
 import fetch from 'node-fetch';
-import axios from 'axios';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -7,7 +6,6 @@ dotenv.config();
 // =======================
 // Configurações
 // =======================
-// const url = snk_url;
 const headers = {
   password: process.env.PASSWORD,
   username: process.env.USERNAME,
@@ -15,21 +13,25 @@ const headers = {
   token: process.env.TOKEN,
 };
 
-const snk_url = 'https://api.sankhya.com.br/login'
-const snk_execute_query = 'https://api.sankhya.com.br/gateway/v1/mge/service.sbr?serviceName=DbExplorerSP.executeQuery&outputType=json'
-const snk_proc_cadastro = 'SELECT sankhya.CC_CS_JSON_PRODUTO(${codprod}) AS ProdutoJSON'
-const snk_proc_estoque = 'SELECT sankhya.CC_CS_JSON_ESTOQUE(${codprod}) AS ProdutoJSON'
-const snk_proc_produtos_recentes = "SELECT sankhya.CC_CS_PRODUTOS_RECENTES(${tempo}) AS ProdutosRecentes"
-const cs_cadastro_proputo = 'https://cc01.csicorpnet.com.br/CS50Integracao_API/rest/CS_IntegracaoV1/ProdutoUpdate?In_Tenant_ID=288'
-const cs_kardex_produto = 'https://cc01.csicorpnet.com.br/CS50Integracao_API/rest/CS_IntegracaoV1/Saldos_Atualiza?In_Tenant_ID=288'
+const snk_url = 'https://api.sankhya.com.br/login';
+const snk_execute_query = 'https://api.sankhya.com.br/gateway/v1/mge/service.sbr?serviceName=DbExplorerSP.executeQuery&outputType=json';
+const snk_proc_cadastro = 'SELECT sankhya.CC_CS_JSON_PRODUTO(${codprod}) AS ProdutoJSON';
+const snk_proc_estoque = 'SELECT sankhya.CC_CS_JSON_ESTOQUE(${codprod}) AS ProdutoJSON';
+const snk_proc_produtos_recentes = "SELECT sankhya.CC_CS_PRODUTOS_RECENTES(${tempo}) AS ProdutosRecentes";
+const cs_cadastro_proputo = 'https://cc01.csicorpnet.com.br/CS50Integracao_API/rest/CS_IntegracaoV1/ProdutoUpdate?In_Tenant_ID=288';
+const cs_kardex_produto = 'https://cc01.csicorpnet.com.br/CS50Integracao_API/rest/CS_IntegracaoV1/Saldos_Atualiza?In_Tenant_ID=288';
 
 // =======================
 // Funções Utilitárias
 // =======================
 async function token() {
   try {
-    const response = await axios.post(snk_url, {}, { headers });
-    const token = response.data.bearerToken;
+    const response = await fetch(snk_url, {
+      method: 'POST',
+      headers
+    });
+    const data = await response.json();
+    const token = data.bearerToken;
     return token;
   } catch (error) {
     handleRequestError(error);
@@ -156,8 +158,6 @@ async function processaCadastrosEEstoques(produtos) {
 // =======================
 async function postProdutosRecentes(tempo) {
   const authorization = await token();
-  // const query = snk_proc_produtos_recentes;
-
   const base_query = snk_proc_produtos_recentes;
   const query = base_query.replace('${tempo}', tempo);
 
